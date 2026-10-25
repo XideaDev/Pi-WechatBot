@@ -15,10 +15,21 @@ const { RemoteCommandHandler, getWelcomeMenu } = require("./lib/remote-commands"
 const { downloadAndDecryptMedia } = require("./lib/media-downloader");
 
 const COMMAND_ID = "wechat-assistant.openPanel";
+const PLUGIN_ID = "io.github.xideadev.pi-wechatbot";
 const PLUGIN_DIR = __dirname;
-const DATA_DIR = path.join(PLUGIN_DIR, "data");
-const LOG_FILE = path.join(DATA_DIR, "messages.log");
 
+// 优先使用 PI-Desktop 官方持久化数据目录 (~/.pi-desktop/plugins/data/<id>)
+// 升级/重装/覆盖插件时该目录绝不删除，登录凭据永久保留！
+function resolveDataDir() {
+  const permDir = path.join(os.homedir(), ".pi-desktop", "plugins", "data", PLUGIN_ID);
+  if (!fs.existsSync(permDir)) {
+    try { fs.mkdirSync(permDir, { recursive: true }); } catch {}
+  }
+  return permDir;
+}
+
+const DATA_DIR = resolveDataDir();
+const LOG_FILE = path.join(DATA_DIR, "messages.log");
 let storage = null;
 let client = null;
 let isBridgeRunning = false;
