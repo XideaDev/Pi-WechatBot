@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "id": "cn.ifolo.pi-wechatbot",
+  "id": "io.github.xideadev.pi-wechatbot",
   "name": "微信 BOT",
   "version": "1.1.0",
   "description": "PI_WeChatBot：在微信中与 PI-Desktop 无缝协同，双向同步、文件互传、远程智能会话控制。",
