@@ -25,12 +25,12 @@
 
 | 1. 微信端即时协同与排版输出 | 2. 远程快捷控制指令菜单 |
 | :---: | :---: |
-| <img src=\"./docs/assets/preview-overview.png\" width=\"360\" alt=\"核心协同全景\" /> | <img src=\"./docs/assets/preview-commands.png\" width=\"360\" alt=\"远程控制指令\" /> |
+| ![核心协同全景](https://cdn.jsdelivr.net/gh/XideaDev/Pi-WechatBot@main/docs/assets/preview-overview.png) | ![远程控制指令](https://cdn.jsdelivr.net/gh/XideaDev/Pi-WechatBot@main/docs/assets/preview-commands.png) |
 | **优雅长文切片与 Markdown 格式** | **本地秒级响应指令系统** |
 
 | 3. 本地活跃与历史会话流控 | 4. Xidea 官方出品与开源规范 |
 | :---: | :---: |
-| <img src=\"./docs/assets/preview-sessions.png\" width=\"360\" alt=\"会话查看与切换\" /> | <img src=\"./docs/assets/preview-about.png\" width=\"360\" alt=\"关于与开源协议\" /> |
+| ![会话查看与切换](https://cdn.jsdelivr.net/gh/XideaDev/Pi-WechatBot@main/docs/assets/preview-sessions.png) | ![关于与开源协议](https://cdn.jsdelivr.net/gh/XideaDev/Pi-WechatBot@main/docs/assets/preview-about.png) |
 | **免切换电脑，远程随时切会话** | **完全透明与安全开源** |
 
 </div>
