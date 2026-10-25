@@ -1,0 +1,623 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="pi-plugin-chrome" content="v2" />
+    <title>微信智能助手</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #141517;
+        --card: #1b1c20;
+        --card-sub: #22242a;
+        --hover: rgba(255, 255, 255, 0.06);
+        --fg: #f4f5f7;
+        --muted: rgba(255, 255, 255, 0.52);
+        --border: rgba(255, 255, 255, 0.1);
+        --accent: #10a37f;
+        --accent-hover: #0d8c6d;
+        --accent-fg: #ffffff;
+        --danger: #ef4444;
+        --success: #22c55e;
+      }
+      :root[data-base="light"] {
+        color-scheme: light;
+        --bg: #f8f9fa;
+        --card: #ffffff;
+        --card-sub: #f1f3f5;
+        --hover: rgba(0, 0, 0, 0.04);
+        --fg: #1a1c20;
+        --muted: #6b7280;
+        --border: rgba(0, 0, 0, 0.1);
+        --accent: #0f766e;
+        --accent-hover: #115e59;
+        --accent-fg: #ffffff;
+        --danger: #dc2626;
+        --success: #16a34a;
+      }
+
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        overflow-y: auto;
+        background: var(--bg);
+        color: var(--fg);
+        font: 13px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang SC", sans-serif;
+      }
+
+      .container {
+        max-width: 480px;
+        margin: 0 auto;
+        padding: 20px 18px 40px;
+        display: flex;
+        flex-direction: column;
+        gap: 16px;
+      }
+
+      .header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding-bottom: 12px;
+        border-bottom: 1px solid var(--border);
+      }
+      .brand {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+      }
+      .brand-icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        background: var(--accent);
+        color: var(--accent-fg);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 700;
+        font-size: 16px;
+      }
+      .brand-text h1 {
+        margin: 0;
+        font-size: 15px;
+        font-weight: 600;
+      }
+      .brand-text p {
+        margin: 2px 0 0;
+        font-size: 11.5px;
+        color: var(--muted);
+      }
+
+      .badge {
+        font-size: 11px;
+        padding: 2px 8px;
+        border-radius: 999px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .badge.online {
+        background: rgba(34, 197, 94, 0.15);
+        color: var(--success);
+      }
+      .badge.offline {
+        background: rgba(239, 68, 68, 0.15);
+        color: var(--danger);
+      }
+      .badge-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+      }
+
+      .card {
+        background: var(--card);
+        border: 1px solid var(--border);
+        border-radius: 12px;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .card-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--fg);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      /* 扫码区域 */
+      .qr-box {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 20px 10px;
+        text-align: center;
+        gap: 14px;
+      }
+      .qr-frame {
+        width: 200px;
+        height: 200px;
+        border-radius: 10px;
+        overflow: hidden;
+        background: #ffffff;
+        padding: 10px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+      }
+      .qr-frame svg {
+        width: 100%;
+        height: 100%;
+        display: block;
+      }
+      .qr-tip {
+        font-size: 12.5px;
+        color: var(--muted);
+      }
+      .qr-status {
+        font-weight: 500;
+        color: var(--accent);
+      }
+
+      /* 表单组件 */
+      .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .form-label {
+        font-size: 12px;
+        color: var(--muted);
+      }
+      .select, .input, .textarea {
+        width: 100%;
+        background: var(--card-sub);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        color: var(--fg);
+        padding: 8px 10px;
+        font-size: 12.5px;
+        outline: none;
+        transition: border-color 0.15s ease;
+      }
+      .select:focus, .input:focus, .textarea:focus {
+        border-color: var(--accent);
+      }
+      .textarea {
+        resize: vertical;
+        font-family: inherit;
+      }
+
+      .toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        user-select: none;
+        cursor: pointer;
+        padding: 4px 0;
+      }
+      .toggle-info {
+        display: flex;
+        flex-direction: column;
+      }
+      .toggle-title {
+        font-size: 13px;
+        font-weight: 500;
+      }
+      .toggle-desc {
+        font-size: 11px;
+        color: var(--muted);
+      }
+
+      .switch {
+        position: relative;
+        width: 36px;
+        height: 20px;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 1px solid var(--border);
+        transition: background 0.2s ease;
+        flex: none;
+      }
+      .switch::after {
+        content: "";
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 14px;
+        height: 14px;
+        border-radius: 50%;
+        background: #ffffff;
+        transition: transform 0.2s ease;
+      }
+      input[type="checkbox"] {
+        display: none;
+      }
+      input[type="checkbox"]:checked + .switch {
+        background: var(--accent);
+      }
+      input[type="checkbox"]:checked + .switch::after {
+        transform: translateX(16px);
+      }
+
+      .btn {
+        background: var(--accent);
+        color: var(--accent-fg);
+        border: none;
+        border-radius: 8px;
+        padding: 8px 16px;
+        font-size: 12.5px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: background 0.15s ease, opacity 0.15s ease;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+      }
+      .btn:hover { background: var(--accent-hover); }
+      .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+      .btn-secondary {
+        background: transparent;
+        color: var(--fg);
+        border: 1px solid var(--border);
+      }
+      .btn-secondary:hover { background: var(--hover); }
+      .btn-danger {
+        background: transparent;
+        color: var(--danger);
+        border: 1px solid rgba(239, 68, 68, 0.3);
+      }
+      .btn-danger:hover {
+        background: rgba(239, 68, 68, 0.1);
+      }
+
+      .toast {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        background: #1f2124;
+        color: #fff;
+        padding: 8px 16px;
+        border-radius: 8px;
+        font-size: 12px;
+        border: 1px solid var(--border);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        z-index: 100;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header class="header">
+        <div class="brand">
+          <div class="brand-icon">微</div>
+          <div class="brand-text">
+            <h1>微信 BOT</h1>
+            <p>PI_WeChatBot · Xidea 出品 (www.ifolo.cn)</p>
+          </div>
+        </div>
+        <div id="statusBadge" class="badge offline">
+          <span class="badge-dot"></span>
+          <span id="statusText">未连接</span>
+        </div>
+      </header>
+
+      <!-- 登录扫码面板（未登录时展示） -->
+      <section id="loginSection" class="card" hidden>
+        <div class="card-title">
+          <span>微信扫码登录</span>
+          <button class="btn btn-secondary" id="refreshQrBtn" style="padding: 4px 10px; font-size: 11px;">刷新二维码</button>
+        </div>
+        <div class="qr-box">
+          <div id="qrCodeFrame" class="qr-frame">
+            <!-- 二维码 SVG 动态装载 -->
+          </div>
+          <p id="qrNotice" class="qr-tip">请使用手机微信扫一扫上方二维码</p>
+        </div>
+      </section>
+
+      <!-- 已登录运行控制面板 -->
+      <section id="connectedSection" class="card" hidden>
+        <div class="card-title">
+          <span>微信连接状态</span>
+          <button id="toggleBridgeBtn" class="btn btn-secondary" style="padding: 4px 10px; font-size: 11px;">暂停桥接</button>
+        </div>
+        <div style="font-size: 12.5px; display: flex; flex-direction: column; gap: 6px;">
+          <div>绑定的微信用户: <strong id="wechatUserDisplay">-</strong></div>
+          <div style="color: var(--muted); font-size: 11.5px;">桥接运行中，微信发来的消息将自动提交给当前会话执行。</div>
+        </div>
+      </section>
+
+      <!-- 会话路由设置 -->
+      <section id="sessionSection" class="card">
+        <div class="card-title">会话路由与派发目标</div>
+        <div class="form-group">
+          <label class="form-label">接收微信指令的目标会话</label>
+          <select id="targetSessionSelect" class="select">
+            <option value="auto">自动跟随当前最新活跃会话</option>
+          </select>
+        </div>
+      </section>
+
+      <!-- 功能与规则配置 -->
+      <!-- 消息推送与规则配置 -->
+      <section id="settingsSection" class="card">
+        <div class="card-title">消息与推送策略</div>
+
+        <div class="form-group">
+          <label class="form-label">微信端推送模式</label>
+          <select id="pushModeSelect" class="select">
+            <option value="single">仅单轮闭环响应（推荐：微信发一条AI回一条，回完即止，桌面打字不扰微信）</option>
+            <option value="mirror">全局双向镜像（桌面和微信发起的对话全量推送到手机微信）</option>
+          </select>
+        </div>
+
+        <label class="toggle-row">
+          <div class="toggle-info">
+            <span class="toggle-title">自动回复已接收回执 (ACK)</span>
+            <span class="toggle-desc">微信收到指令时立即回复一条已收到提示</span>
+          </div>
+          <input type="checkbox" id="autoAck" />
+          <span class="switch"></span>
+        </label>
+
+        <div class="form-group" id="ackTextGroup">
+          <label class="form-label">回执确认文本</label>
+          <input type="text" id="ackTextInput" class="input" />
+        </div>
+
+        <!-- 快捷指令指南 -->
+        <div style="background: var(--card-sub); padding: 10px 12px; border-radius: 8px; font-size: 12px; display: flex; flex-direction: column; gap: 4px; border: 1px solid var(--border);">
+          <strong style="color: var(--accent);">📱 手机微信可用远程指令：</strong>
+          <div style="color: var(--muted); line-height: 1.6;">
+            • <code>/help</code> — 呼出微信欢迎菜单与指令清单<br />
+            • <code>/sessions</code> — 列出最近活跃会话<br />
+            • <code>/switch &lt;序号&gt;</code> — 切换绑定的会话（如 /switch 2）<br />
+            • <code>/projects</code> — 列出已登记的工程目录<br />
+            • <code>/status</code> — 查看当前连接与工作区信息<br />
+            • <code>/about</code> — 查看关于与开发团队 (Xidea)<br />
+            • <code>/mute</code> 或 <code>/bye</code> — 远程静音，停止微信推送<br />
+            • <code>/stop</code> — 紧急中止桌面当前任务
+          </div>
+        </div>
+
+        <details style="font-size: 12px; color: var(--muted);">
+          <summary style="cursor: pointer; padding: 4px 0;">高级：系统规则提示词（已由全局 prompt.d 托管）</summary>
+          <div style="padding-top: 6px;">
+            <div style="font-size: 11.5px; margin-bottom: 4px; color: var(--muted);">提示词已移至 <code>~/.pi/agent/prompt.d/</code> 静默加载，不再污染桌面对话框。</div>
+            <textarea id="systemRulesInput" class="textarea" rows="2" placeholder="可保留自定义备用规则"></textarea>
+          </div>
+        </details>
+
+        <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 4px;">
+          <button id="saveSettingsBtn" class="btn">保存设置</button>
+        </div>
+      </section>
+
+      <!-- 实时日志与动态 -->
+      <section class="card" id="logsCard">
+        <div class="card-title">
+          <span>消息与事件动态</span>
+          <button id="refreshLogsBtn" class="btn btn-secondary" style="padding: 2px 8px; font-size: 11px;">刷新</button>
+        </div>
+        <div id="logsContainer" style="font-family: monospace; font-size: 11.5px; display: flex; flex-direction: column; gap: 4px; max-height: 160px; overflow-y: auto; background: var(--card-sub); padding: 8px; border-radius: 6px;">
+          <div style="color: var(--muted);">暂无消息记录</div>
+        </div>
+      </section>
+
+      <!-- 底部退出登录 -->
+      <div id="footerSection" style="display: flex; justify-content: space-between; align-items: center; padding-top: 10px;" hidden>
+        <span style="font-size: 11.5px; color: var(--muted);">PI_WeChatBot v1.1.0 · <a href="https://www.ifolo.cn" target="_blank" style="color: inherit; text-decoration: underline;">Xidea (www.ifolo.cn)</a></span>
+        <button id="logoutBtn" class="btn btn-danger" style="font-size: 12px; padding: 6px 12px;">退出当前微信登录</button>
+      </div>
+    </div>
+
+    <div id="toast" class="toast" hidden></div>
+
+    <script>
+      const bridge = window.pluginBridge;
+      const $ = (id) => document.getElementById(id);
+
+      let currentState = null;
+      let qrPollTimer = null;
+
+      function toast(msg) {
+        const el = $("toast");
+        el.textContent = msg;
+        el.hidden = false;
+        setTimeout(() => { el.hidden = true; }, 2500);
+      }
+
+      async function invoke(channel, payload = {}) {
+        if (!bridge || typeof bridge.invoke !== "function") {
+          throw new Error("pluginBridge 不可用");
+        }
+        return await bridge.invoke(channel, payload);
+      }
+
+      // 加载状态
+      async function loadState() {
+        try {
+          const state = await invoke("wechat.getState");
+          currentState = state;
+          render();
+        } catch (err) {
+          console.error("loadState failed:", err);
+        }
+      }
+
+      function render() {
+        if (!currentState) return;
+        const { isLoggedIn, isRunning, userId, settings, sessions } = currentState;
+
+        // 状态徽标
+        const statusBadge = $("statusBadge");
+        const statusText = $("statusText");
+        if (isLoggedIn && isRunning) {
+          statusBadge.className = "badge online";
+          statusText.textContent = "已连接 · 运行中";
+        } else if (isLoggedIn && !isRunning) {
+          statusBadge.className = "badge offline";
+          statusText.textContent = "已暂停";
+        } else {
+          statusBadge.className = "badge offline";
+          statusText.textContent = "未登录";
+        }
+
+        // 面板展示切换
+        $("loginSection").hidden = isLoggedIn;
+        $("connectedSection").hidden = !isLoggedIn;
+        $("footerSection").hidden = !isLoggedIn;
+
+        if (isLoggedIn) {
+          $("wechatUserDisplay").textContent = userId || "已绑定用户";
+          $("toggleBridgeBtn").textContent = isRunning ? "暂停微信桥接" : "启动微信桥接";
+          $("toggleBridgeBtn").className = isRunning ? "btn btn-secondary" : "btn";
+        } else {
+          loadQrCode();
+        }
+
+        // 渲染 Sessions 下拉列表
+        const select = $("targetSessionSelect");
+        const currentTarget = settings.targetSessionId || "auto";
+        select.innerHTML = '<option value="auto">自动跟随当前最新活跃会话</option>';
+
+        if (Array.isArray(sessions)) {
+          sessions.forEach((s) => {
+            const sid = s.id || s.sessionId || "";
+            const title = s.title || s.name || `会话 ${sid.slice(0, 8)}`;
+            const opt = document.createElement("option");
+            opt.value = sid;
+            opt.textContent = title;
+            if (sid === currentTarget) opt.selected = true;
+            select.appendChild(opt);
+          });
+        }
+
+        // 渲染设置
+        $("pushModeSelect").value = settings.bidirectionalSync ? "mirror" : "single";
+        $("autoAck").checked = Boolean(settings.autoAck);
+        $("ackTextInput").value = settings.ackText || "";
+        $("systemRulesInput").value = settings.systemRules || "";
+
+        // 渲染日志
+        const logsBox = $("logsContainer");
+        const logs = currentState.logs || [];
+        if (logs.length === 0) {
+          logsBox.innerHTML = '<div style="color: var(--muted);">暂无消息记录</div>';
+        } else {
+          logsBox.innerHTML = logs.map(l => `<div><span style="color:var(--muted)">[${l.time}]</span> <strong style="color:var(--accent)">[${l.type}]</strong> ${escapeHtml(l.details)}</div>`).join("");
+        }
+      }
+
+      function escapeHtml(s) {
+        return String(s || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+      }
+
+      // 获取二维码并开始轮询
+      async function loadQrCode() {
+        if (qrPollTimer) clearInterval(qrPollTimer);
+        $("qrNotice").textContent = "正在获取最新二维码…";
+        try {
+          const res = await invoke("wechat.getQr");
+          if (res.svg) {
+            $("qrCodeFrame").innerHTML = res.svg;
+            $("qrNotice").textContent = "请使用手机微信扫一扫上方二维码";
+            startPollQr(res.token);
+          }
+        } catch (err) {
+          console.error("[WeChatAssistant] loadQrCode failed:", err);
+          $("qrNotice").textContent = `获取二维码失败: ${err.message || "请检查网络"}，点击右上角刷新重试`;
+        }
+      }
+
+      function startPollQr(token) {
+        if (qrPollTimer) clearInterval(qrPollTimer);
+        qrPollTimer = setInterval(async () => {
+          try {
+            const res = await invoke("wechat.pollQr", { token });
+            if (res.status === "scaned") {
+              $("qrNotice").innerHTML = '<span class="qr-status">已扫码，请在手机上点击确认登录</span>';
+            } else if (res.status === "confirmed") {
+              clearInterval(qrPollTimer);
+              toast("微信登录成功！");
+              await loadState();
+            } else if (res.status === "expired") {
+              clearInterval(qrPollTimer);
+              $("qrNotice").textContent = "二维码已过期，正在刷新…";
+              loadQrCode();
+            }
+          } catch {}
+        }, 2000);
+      }
+
+      // 事件绑定
+      $("refreshQrBtn").addEventListener("click", () => loadQrCode());
+
+      $("toggleBridgeBtn").addEventListener("click", async () => {
+        try {
+          await invoke("wechat.toggleBridge");
+          await loadState();
+        } catch (err) {
+          toast(err.message);
+        }
+      });
+
+      $("saveSettingsBtn").addEventListener("click", async () => {
+        const patch = {
+          targetSessionId: $("targetSessionSelect").value,
+          bidirectionalSync: $("pushModeSelect").value === "mirror",
+          autoAck: $("autoAck").checked,
+          ackText: $("ackTextInput").value.trim(),
+          systemRules: $("systemRulesInput").value.trim(),
+        };
+
+        try {
+          await invoke("wechat.saveSettings", { settings: patch });
+          toast("设置已保存");
+          await loadState();
+        } catch (err) {
+          toast(`保存失败: ${err.message}`);
+        }
+      });
+
+      $("logoutBtn").addEventListener("click", async () => {
+        if (!confirm("确定退出当前绑定的微信登录吗？")) return;
+        try {
+          await invoke("wechat.logout");
+          toast("已退出微信登录");
+          await loadState();
+        } catch (err) {
+          toast(err.message);
+        }
+      });
+
+      // 主题自适应
+      const applyAppearance = (appearance) => {
+        const base = appearance && appearance.base;
+        document.documentElement.dataset.base =
+          base === "light" || base === "dark"
+            ? base
+            : window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      };
+      if (bridge && typeof bridge.on === "function") {
+        bridge.on("appearance:changed", applyAppearance);
+      }
+      invoke("app.getAppearance").then(applyAppearance).catch(() => applyAppearance(null));
+
+      $("refreshLogsBtn").addEventListener("click", () => loadState());
+      loadState();
+      setInterval(loadState, 3000);
+    </script>
+  </body>
+</html>

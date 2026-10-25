@@ -1,0 +1,8 @@
+{
+  "bidirectionalSync": false,
+  "autoAck": true,
+  "ackText": "已收到指令，微信 BOT 处理中…",
+  "targetSessionId": "auto",
+  "promptPrefix": "[微信] ",
+  "systemRules": "当前指令来自微信端输入，请直接在正文回复，使用编号清晰陈述。如需用户确认，直接在回复中列出数字选项，避免调用阻塞式对话框。"
+}

@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "id": "cn.ifolo.pi-wechatbot",
+  "name": "微信 BOT",
+  "version": "1.1.0",
+  "description": "PI_WeChatBot：在微信中与 PI-Desktop 无缝协同，双向同步、文件互传、远程智能会话控制。",
+  "author": "Xidea",
+  "homepage": "https://www.ifolo.cn",
+  "license": "MIT",
+  "main": "main.js",
+  "engines": {
+    "piDesktop": ">=0.14.0"
+  },
+  "permissions": [
+    "ui.panel",
+    "desktop.control",
+    "agent.extension"
+  ],
+  "ui": {
+    "panel": "renderer/index.html",
+    "width": 540,
+    "height": 720,
+    "title": {
+      "en": "PI_WeChatBot",
+      "zh-CN": "微信 BOT"
+    }
+  },
+  "i18n": {
+    "en": {
+      "name": "PI_WeChatBot",
+      "description": "PI_WeChatBot: Connect WeChat to PI-Desktop for remote coding tasks, two-way sync, and mobile workflow control.",
+      "safetyNotes": "Official iLink Bot connector by Xidea. Injects prompts and captures model responses securely."
+    },
+    "zh-CN": {
+      "name": "微信 BOT",
+      "description": "PI_WeChatBot：在微信中与 PI-Desktop 无缝协同，双向同步、文件互传、远程智能会话控制。",
+      "safetyNotes": "Xidea 团队出品。通过微信官方 iLink Bot 协议安全连接手机与桌面智能体。"
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "id": "wechat-assistant.openPanel",
+        "title": "微信 BOT: 打开控制面板",
+        "keywords": ["wechat", "微信", "bot", "pi_wechatbot", "xidea", "助手"]
+      }
+    ],
+    "agentExtensions": [
+      "extensions/agent.js"
+    ]
+  },
+  "activationEvents": [
+    "onStartup",
+    "onCommand:wechat-assistant.openPanel"
+  ]
+}

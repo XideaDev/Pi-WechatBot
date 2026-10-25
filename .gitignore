@@ -1,0 +1,8 @@
+node_modules
+data/credentials.json
+data/context_token.json
+data/ipc.json
+data/messages.log
+data/*.old
+dist
+.DS_Store
