@@ -1,13 +1,13 @@
 # 微信 BOT (PI_WeChatBot) For PI-Desktop
 
-> **PI_WeChatBot** 是专为 [PI-Desktop](https://earendil.com) 智能体桌面客户端打造的微信官方无缝协同桥梁。  
+> **PI_WeChatBot** 是专为 [PI-Desktop](https://github.com/vastsa/PI-Desktop) 智能体桌面客户端打造的微信官方无缝协同桥梁。  
 > 基于微信官方底层通信协议，实现手机微信与电脑端编程智能体的双向对话同步、多模态看图识图、AI 产物文件原生直传与全功能远程掌控。
 
 由 **[Xidea 团队](https://www.ifolo.cn)** 精心出品。
 
 ### 💡 开发初衷 (Why PI_WeChatBot?)
 
-[PI-Desktop](https://earendil.com) 团队为我们带来了极其惊艳的 Pi 桌面端体验，让本地桌面端 Vibe Coding 的效率与爽感达到了全新的高度。
+[PI-Desktop](https://github.com/vastsa/PI-Desktop) 团队为我们带来了极其惊艳的 Pi 桌面端体验，让本地桌面端 Vibe Coding 的效率与爽感达到了全新的高度。
 
 而在日常重度使用中我们发现，灵感和线上 Bug 从来不会挑人坐在电脑前的时候才出现——每当离开工位小憩或出门在外，我们依然迫
 
