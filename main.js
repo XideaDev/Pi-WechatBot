@@ -342,10 +342,10 @@ async function onIncomingWechatMessage(msg) {
   if (msg.media && msg.media.type === "image" && msg.media.url) {
     try {
       appendLog("图片下载", "检测到微信截图，正在从腾讯 CDN 拉取并解密...");
-      const targetDir = path.join(process.cwd(), ".pi-wechat-files");
+      const targetDir = path.join(DATA_DIR, "media");
       const savedPath = await downloadAndDecryptMedia(msg.media.url, msg.media.aesKey, targetDir, ".png");
       appendLog("图片就绪", `截图已无损解密至: ${savedPath}`);
-      extraPrompt = `\n\n[微信图片附件已就绪]\n本地绝对路径: ${savedPath}\n请调用视觉工具或结合上述图片文件进行分析与代码实施。`;
+      extraPrompt = `\n\n[微信图片已就绪]\n本地绝对路径: ${savedPath}\n请调用视觉工具查看或结合上述图片进行深度分析并执行相关任务。`;
     } catch (mediaErr) {
       appendLog("图片下载失败", mediaErr.message);
       extraPrompt = `\n\n[微信图片]\n下载失败: ${mediaErr.message}`;
@@ -431,6 +431,7 @@ async function onPanelInvoke(channel, payload = {}) {
           baseUrl: resp.baseurl || DEFAULT_BASE_URL,
         };
         storage.saveCredentials(credentials);
+        appendLog("扫码登录成功", `微信账号认证成功: ${credentials.userId}`);
         await startBridge();
         // 首次扫码成功后，主动向微信端推送欢迎菜单
         setTimeout(() => {
