@@ -12,6 +12,7 @@ const { WECHAT_SOURCE_TAG } = require("./lib/constants");
 const { createQrSvg } = require("./lib/qrcode-svg");
 const { SessionWatcher } = require("./lib/session-watcher");
 const { RemoteCommandHandler, getWelcomeMenu } = require("./lib/remote-commands");
+const { downloadAndDecryptMedia } = require("./lib/media-downloader");
 
 const COMMAND_ID = "wechat-assistant.openPanel";
 const PLUGIN_DIR = __dirname;
@@ -325,8 +326,23 @@ async function onIncomingWechatMessage(msg) {
     activeWechatSessions.delete(targetSessionId);
   }, 300_000);
 
-  // 3. 构造纯净 Prompt：彻底移除冗余的 [系统规则] 文本污染！
-  const promptText = `${settings.promptPrefix || WECHAT_SOURCE_TAG} ${text}`;
+  // 3. 检查是否有附带图片/媒体文件，若有则自动解密下载至本地工作区
+  let extraPrompt = "";
+  if (msg.media && msg.media.type === "image" && msg.media.url) {
+    try {
+      appendLog("图片下载", "检测到微信截图，正在从腾讯 CDN 拉取并解密...");
+      const targetDir = path.join(process.cwd(), ".pi-wechat-files");
+      const savedPath = await downloadAndDecryptMedia(msg.media.url, msg.media.aesKey, targetDir, ".png");
+      appendLog("图片就绪", `截图已无损解密至: ${savedPath}`);
+      extraPrompt = `\n\n[微信图片附件已就绪]\n本地绝对路径: ${savedPath}\n请调用视觉工具或结合上述图片文件进行分析与代码实施。`;
+    } catch (mediaErr) {
+      appendLog("图片下载失败", mediaErr.message);
+      extraPrompt = `\n\n[微信图片]\n下载失败: ${mediaErr.message}`;
+    }
+  }
+
+  // 4. 构造纯净 Prompt：彻底移除冗余的 [系统规则] 文本污染！
+  const promptText = `${settings.promptPrefix || WECHAT_SOURCE_TAG} ${text}${extraPrompt}`;
   appendLog("任务派发", `正在将指令投递至会话 ${targetSessionId.slice(0, 8)}...`);
   if (sessionWatcher) {
     sessionWatcher.trackSession(targetSessionId);
