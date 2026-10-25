@@ -6,19 +6,23 @@
 import * as fs from "node:fs";
 import * as path from "node:path";
 import * as http from "node:http";
+import * as os from "node:os";
 
+const PLUGIN_ID = "io.github.xideadev.pi-wechatbot";
 const EXTENSION_DIR = path.dirname(new URL(import.meta.url).pathname);
 const PLUGIN_DIR = path.resolve(EXTENSION_DIR, "..");
-const DATA_DIR = path.join(PLUGIN_DIR, "data");
-const IPC_FILE = path.join(DATA_DIR, "ipc.json");
-
+const PERM_DATA_DIR = path.join(os.homedir(), ".pi-desktop", "plugins", "data", PLUGIN_ID);
+const LOCAL_DATA_DIR = path.join(PLUGIN_DIR, "data");
+const PRIMARY_IPC_FILE = path.join(PERM_DATA_DIR, "ipc.json");
+const FALLBACK_IPC_FILE = path.join(LOCAL_DATA_DIR, "ipc.json");
 let cachedIpcPort = 0;
 
 function getIpcPort() {
   if (cachedIpcPort > 0) return cachedIpcPort;
   try {
-    if (fs.existsSync(IPC_FILE)) {
-      const data = JSON.parse(fs.readFileSync(IPC_FILE, "utf8"));
+    const ipcPath = fs.existsSync(PRIMARY_IPC_FILE) ? PRIMARY_IPC_FILE : (fs.existsSync(FALLBACK_IPC_FILE) ? FALLBACK_IPC_FILE : null);
+    if (ipcPath) {
+      const data = JSON.parse(fs.readFileSync(ipcPath, "utf8"));
       cachedIpcPort = Number(data.port) || 0;
       return cachedIpcPort;
     }

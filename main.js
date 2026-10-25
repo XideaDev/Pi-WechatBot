@@ -40,6 +40,7 @@ let ipcPort = 0;
 
 // 会话映射：记录哪个 Session 目前由微信驱动
 let activeWechatSessions = new Set();
+let activeSessionTimers = new Map();
 let latestActiveSessionId = "";
 let sessionWatcher = null;
 let pendingSafetyConfirmation = null; // { command, resolve, timer }
@@ -316,12 +317,7 @@ async function onIncomingWechatMessage(msg) {
   appendLog("收到微信消息", `${msg.fromUser || "用户"}: ${text}`);
 
   // 0. 优先由远程命令调度器处理快捷指令与菜单交互 (/help, /status, /sessions, /switch, /projects, /mute, /listen, /stop)
-  let HandlerClass = RemoteCommandHandler;
-  try {
-    delete require.cache[require.resolve("./lib/remote-commands")];
-    HandlerClass = require("./lib/remote-commands").RemoteCommandHandler;
-  } catch {}
-  const commandHandler = new HandlerClass({
+  const commandHandler = new RemoteCommandHandler({
     client,
     storage,
     listSessions,
@@ -364,9 +360,14 @@ async function onIncomingWechatMessage(msg) {
   // 记录该 Session 当前由微信单轮驱动（5分钟超时租期自动移出）
   activeWechatSessions.add(targetSessionId);
   latestActiveSessionId = targetSessionId;
-  setTimeout(() => {
+  if (activeSessionTimers.has(targetSessionId)) {
+    clearTimeout(activeSessionTimers.get(targetSessionId));
+  }
+  const timer = setTimeout(() => {
     activeWechatSessions.delete(targetSessionId);
+    activeSessionTimers.delete(targetSessionId);
   }, 300_000);
+  activeSessionTimers.set(targetSessionId, timer);
 
   // 3. 检查是否有附带图片/媒体文件，若有则自动解密下载至本地工作区
   let extraPrompt = "";
