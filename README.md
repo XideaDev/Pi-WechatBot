@@ -1,9 +1,35 @@
-# 微信 BOT (PI_WeChatBot)
+# 微信 BOT (PI_WeChatBot) For PI-Desktop
 
-> **PI_WeChatBot** 是专为 [PI-Desktop](https://earendil.com) 智能体桌面客户端打造的微信无缝协同桥梁。  
+> **PI_WeChatBot** 是专为 [PI-Desktop](https://earendil.com) 智能体桌面客户端打造的微信官方无缝协同桥梁。  
 > 基于微信官方底层通信协议，实现手机微信与电脑端编程智能体的双向对话同步、多模态看图识图、AI 产物文件原生直传与全功能远程掌控。
 
 由 **[Xidea 团队](https://www.ifolo.cn)** 精心出品。
+
+### 💡 开发初衷 (Why PI_WeChatBot?)
+
+[PI-Desktop](https://earendil.com) 团队为我们带来了极其惊艳的 Pi 桌面端体验，让本地桌面端 Vibe Coding 的效率与爽感达到了全新的高度。
+
+而在日常重度使用中我们发现，灵感和线上 Bug 从来不会挑人坐在电脑前的时候才出现——每当离开工位小憩或出门在外，我们依然迫
+
+切希望能随时与桌面端正在奔跑的智能体保持连接：看看长任务跑完没有、随手确认一下关键节点、或者躺在沙发上把突发奇想的 PRD 
+
+发给电脑先跑起来。
+
+目前 PI-Desktop 官方团队正全力深耕桌面端插件市场的核心引擎与极致体验，移动端尚未提上日程。作为 PI-Desktop 的忠实拥趸，本着
+
+开源社区“生态共建、用爱发电”的极客精神，**[Xidea 团队](https://www.ifolo.cn/)** 决定主动接过这块跨端拼图，精心出品了 **PI_WeChatBot**。
+
+我们没有选择再造一个需要额外安装的独立 App，而是将能力直接注入你每天打开无数次的**微信**里——无需部署繁琐的公网面板，不用配
+
+置复杂的远程桌面，打开微信聊天框，你的手机瞬间化身为 PI-Desktop 的全能随身遥控器。真正实现：**人在路上走，码在家里跑，产物**
+
+**微信收。**
+
+
+
+#### 🌟 如果这也击中了你的痛点，欢迎点亮一颗 Star！你的认可是我们持续迭代与维护的最大动力！
+
+
 
 ---
 
@@ -50,10 +76,10 @@
 | ![核心协同全景](https://cdn.jsdelivr.net/gh/XideaDev/Pi-WechatBot@main/docs/assets/preview-overview.png) | ![远程控制指令](https://cdn.jsdelivr.net/gh/XideaDev/Pi-WechatBot@main/docs/assets/preview-commands.png) |
 | **优雅长文切片与 Markdown 格式** | **本地秒级响应指令系统** |
 
-| 3. 本地活跃与历史会话流控 | 4. Xidea 官方出品与开源规范 |
+| 3. 本地活跃与历史会话流控 | 4. 交付源文件微信内即开，微信官方C2C加密直传 |
 | :---: | :---: |
 | ![会话查看与切换](https://cdn.jsdelivr.net/gh/XideaDev/Pi-WechatBot@main/docs/assets/preview-sessions.png) | ![关于与开源协议](https://cdn.jsdelivr.net/gh/XideaDev/Pi-WechatBot@main/docs/assets/preview-about.png) |
-| **免切换电脑，远程随时切会话** | **完全透明与安全开源** |
+| **免切换电脑，远程随时切会话** | **微信官方 C2C 文件传输，完全透明与安全** |
 
 </div>
 
