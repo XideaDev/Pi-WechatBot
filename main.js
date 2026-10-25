@@ -13,6 +13,7 @@ const { createQrSvg } = require("./lib/qrcode-svg");
 const { SessionWatcher } = require("./lib/session-watcher");
 const { RemoteCommandHandler, getWelcomeMenu } = require("./lib/remote-commands");
 const { downloadAndDecryptMedia } = require("./lib/media-downloader");
+const { sendLocalFileToWechat } = require("./lib/media-uploader");
 
 const COMMAND_ID = "wechat-assistant.openPanel";
 const PLUGIN_ID = "io.github.xideadev.pi-wechatbot";
@@ -41,7 +42,7 @@ let ipcPort = 0;
 let activeWechatSessions = new Set();
 let latestActiveSessionId = "";
 let sessionWatcher = null;
-
+let pendingSafetyConfirmation = null; // { command, resolve, timer }
 function appendLog(type, details) {
   try {
     // 日志滚动：超过 512KB 时重命名为 .old
@@ -116,21 +117,36 @@ function startIpcServer() {
  */
 async function handleAgentEvent(event) {
   const { type, sessionId, content } = event;
-
-  if (type === "assistant_chunk" && content) {
+  if (type === "send_file" && event.filePath) {
+    const creds = storage ? storage.loadCredentials() : null;
+    if (creds && client) {
+      try {
+        appendLog("文件上传", `正在将本地文件直传腾讯 CDN 并推送至微信: ${event.filePath}`);
+        const targetUser = event.targetUser || creds.userId;
+        const contextToken = client.getContextToken(targetUser);
+        await sendLocalFileToWechat({
+          baseUrl: creds.baseUrl,
+          token: creds.token,
+          userId: targetUser,
+          contextToken,
+          filePath: event.filePath,
+          displayName: event.displayName,
+          isImage: Boolean(event.isImage),
+        });
+        appendLog("文件推送成功", `文件卡片已送达微信手机端: ${event.filePath}`);
+      } catch (fileErr) {
+        console.error("[WeChatAssistant] send_file failed:", fileErr);
+        appendLog("文件推送失败", fileErr.message);
+      }
+    }
+  } else if (type === "assistant_chunk" && content) {
     const settings = storage ? storage.loadSettings() : {};
     const isWechatInitiated = activeWechatSessions.has(sessionId);
 
-    // 若非微信发起，且未开启双向镜像，跳过
-    if (!isWechatInitiated && !settings.bidirectionalSync) {
-      return;
-    }
-
+    if (!isWechatInitiated && !settings.bidirectionalSync) return;
     if (!client || !isBridgeRunning) return;
 
     appendLog("AI回复微信", `正在发送给手机微信: ${content.slice(0, 40)}...`);
-
-    // 格式化并分块推送到微信
     const chunks = splitAndFilterMarkdown(content);
     for (const chunk of chunks) {
       try {
@@ -281,7 +297,22 @@ async function onIncomingWechatMessage(msg) {
   const settings = storage.loadSettings();
   const text = (msg.content || "").trim();
   if (!text) return;
-
+  // 0. 安全门禁拦截确认响应
+  if (pendingSafetyConfirmation && (text === "1" || text === "2")) {
+    const conf = pendingSafetyConfirmation;
+    clearTimeout(conf.timer);
+    pendingSafetyConfirmation = null;
+    if (text === "1") {
+      conf.resolve({ allow: true });
+      appendLog("安全门禁", `用户已在微信授权放行高危指令: ${conf.command}`);
+      await client.sendText(msg.fromUser, `✅ 已授权放行指令执行：\n> ${conf.command}`);
+    } else {
+      conf.resolve({ allow: false });
+      appendLog("安全门禁", `用户在微信拒绝了高危指令: ${conf.command}`);
+      await client.sendText(msg.fromUser, `🛑 已拒绝该指令执行并保护系统安全：\n> ${conf.command}`);
+    }
+    return;
+  }
   appendLog("收到微信消息", `${msg.fromUser || "用户"}: ${text}`);
 
   // 0. 优先由远程命令调度器处理快捷指令与菜单交互 (/help, /status, /sessions, /switch, /projects, /mute, /listen, /stop)

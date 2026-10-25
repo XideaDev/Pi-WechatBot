@@ -139,31 +139,64 @@ export default function wechatAgentExtension(api) {
     isCurrentTurnWechat = false;
   });
 
-  // 6. 注册向微信发送本地文件的工具（AI 可主动调用）
+  // 6. 注册向微信发送本地文件与图片的工具（AI 可主动调用，直接推送原生文件卡片到微信）
   if (typeof api.registerTool === "function") {
     api.registerTool({
       name: "send_file_to_wechat",
-      description: "将当前项目中的生成文件或报告通过微信主动发送给绑定的微信用户。",
+      description: "将当前电脑上的生成文件（如 PDF 报告、zip 包、导出的数据）作为原生文件卡片直接发送到手机微信。",
       parameters: {
         type: "object",
         properties: {
           path: {
             type: "string",
-            description: "要发送给微信的文件路径（工作区相对路径或绝对路径）",
+            description: "本地绝对路径或工作区相对路径",
           },
-          summary: {
+          displayName: {
             type: "string",
-            description: "伴随文件一同发送的简短说明文本",
+            description: "微信聊天中显示的文件名（可选，默认使用原文件名）",
           },
         },
         required: ["path"],
       },
       handler: async (args) => {
+        const fullPath = path.isAbsolute(args.path) ? args.path : path.resolve(process.cwd(), args.path);
+        if (!fs.existsSync(fullPath)) {
+          return { success: false, error: `文件不存在: ${fullPath}` };
+        }
         sendToMain({
-          type: "assistant_chunk",
-          content: `【文件已通过微信发送】${args.path} ${args.summary ? "(" + args.summary + ")" : ""}`,
+          type: "send_file",
+          filePath: fullPath,
+          displayName: args.displayName,
+          isImage: false,
         });
-        return { success: true, message: `文件已推送到微信发送队列: ${args.path}` };
+        return { success: true, message: `文件已提交微信加密上传直传队列: ${path.basename(fullPath)}` };
+      },
+    });
+
+    api.registerTool({
+      name: "send_image_to_wechat",
+      description: "将当前电脑上的生成图片或渲染截图作为原生图片直接发送到手机微信。",
+      parameters: {
+        type: "object",
+        properties: {
+          path: {
+            type: "string",
+            description: "本地图片文件的绝对路径或相对路径",
+          },
+        },
+        required: ["path"],
+      },
+      handler: async (args) => {
+        const fullPath = path.isAbsolute(args.path) ? args.path : path.resolve(process.cwd(), args.path);
+        if (!fs.existsSync(fullPath)) {
+          return { success: false, error: `图片不存在: ${fullPath}` };
+        }
+        sendToMain({
+          type: "send_file",
+          filePath: fullPath,
+          isImage: true,
+        });
+        return { success: true, message: `图片已提交微信加密直传队列: ${path.basename(fullPath)}` };
       },
     });
   }
