@@ -14,7 +14,8 @@
   "permissions": [
     "ui.panel",
     "desktop.control",
-    "agent.extension"
+    "agent.extension",
+    "agent.tool.register"
   ],
   "ui": {
     "panel": "renderer/index.html",
