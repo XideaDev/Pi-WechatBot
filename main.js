@@ -234,7 +234,13 @@ async function startBridge() {
   });
 
   client.on("poll_error", (err) => {
-    appendLog("轮询错误", err.message);
+    // 长轮询空闲超时属正常网络心跳周期，静默重试，不写入报警日志
+    const isNormalTimeout = err.name === "TimeoutError" || 
+      err.name === "AbortError" || 
+      /timeout|aborted/i.test(err.message);
+    if (!isNormalTimeout) {
+      appendLog("网络波动", `轮询异常(${err.message})，正在自动重连...`);
+    }
   });
   // 初始化会话文件监听器（直连会话输出）
   if (!sessionWatcher) {
