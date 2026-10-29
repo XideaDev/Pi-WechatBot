@@ -91,9 +91,9 @@ function startIpcServer() {
       req.on("end", async () => {
         try {
           const data = body ? JSON.parse(body) : {};
-          await handleAgentEvent(data);
+          const result = await handleAgentEvent(data);
           res.writeHead(200, { "Content-Type": "application/json" });
-          res.end(JSON.stringify({ ok: true }));
+          res.end(JSON.stringify(result || { ok: true }));
         } catch (err) {
           res.writeHead(500, { "Content-Type": "application/json" });
           res.end(JSON.stringify({ error: err.message }));
@@ -118,7 +118,46 @@ function startIpcServer() {
  */
 async function handleAgentEvent(event) {
   const { type, sessionId, content } = event;
-  if (type === "send_file" && event.filePath) {
+  if (type === "ask_approval") {
+    const creds = storage ? storage.loadCredentials() : null;
+    const targetUser = creds?.userId || "";
+    if (!targetUser || !client) {
+      return { allow: false, reason: "No active WeChat client" };
+    }
+
+    appendLog("安全门禁请求", `智能体正在请求执行高危命令: ${event.command}`);
+
+    // 发送微信确认卡片
+    const askMsg = [
+      "⚠️ 【远程高危操作授权请求】",
+      "桌面智能体正请求执行敏感操作：",
+      `• 工具: ${event.toolName || "Bash"}`,
+      `• 命令: ${event.command || "未知"}`,
+      "",
+      "👉 请直接在微信回复：",
+      "1 - 授权放行继续执行",
+      "2 - 拒绝阻止该指令",
+      "(60秒内有效，超时将自动拒绝阻止)",
+    ].join("\n");
+
+    client.sendText(targetUser, askMsg).catch(() => {});
+
+    return new Promise((resolve) => {
+      const timer = setTimeout(() => {
+        pendingSafetyConfirmation = null;
+        appendLog("安全门禁超时", `微信授权超时，已自动阻止: ${event.command}`);
+        client.sendText(targetUser, `⏰ 授权请求已超时，已自动拒绝执行高危指令：\n> ${event.command}`).catch(() => {});
+        resolve({ allow: false, reason: "Approval timeout" });
+      }, 60_000);
+
+      pendingSafetyConfirmation = {
+        command: event.command,
+        toolName: event.toolName,
+        resolve,
+        timer,
+      };
+    });
+  } else if (type === "send_file" && event.filePath) {
     const creds = storage ? storage.loadCredentials() : null;
     if (creds && client) {
       try {
@@ -245,7 +284,7 @@ async function startBridge() {
   // 初始化会话文件监听器（直连会话输出）
   if (!sessionWatcher) {
     sessionWatcher = new SessionWatcher();
-    sessionWatcher.on("assistant_message", async ({ sessionId, text }) => {
+    sessionWatcher.on("assistant_message", async ({ sessionId, text, stats }) => {
       const settings = storage ? storage.loadSettings() : {};
       const isWechatTurn = activeWechatSessions.has(sessionId);
 
@@ -254,7 +293,24 @@ async function startBridge() {
       if (!client || !isBridgeRunning) return;
 
       appendLog("推送回复", `已截获回复并推送至微信 (${text.length}字): ${text.slice(0, 30)}...`);
-      const chunks = splitAndFilterMarkdown(text);
+
+      // 任务完成卡片：对于耗时较长或调用了工具的任务，附带极客感执行报告
+      let finalText = text;
+      if (stats && (stats.durationMs >= 10_000 || stats.toolCount > 0)) {
+        const sec = (stats.durationMs / 1000).toFixed(1);
+        const parts = [`⏱️ 耗时: ${sec}s`];
+        if (stats.toolCount > 0) parts.push(`执行 ${stats.toolCount} 步工具`);
+        if (stats.modelId) parts.push(`模型: ${stats.modelId.replace(/.*\//, "")}`);
+        if (stats.usage?.totalTokens) {
+          const tok = stats.usage.totalTokens >= 1000 
+            ? `${(stats.usage.totalTokens / 1000).toFixed(1)}k`
+            : `${stats.usage.totalTokens}`;
+          parts.push(`消耗 ${tok} Tokens`);
+        }
+        finalText += `\n\n───────────────\n🔔 【任务执行完成】\n${parts.join(" · ")}`;
+      }
+
+      const chunks = splitAndFilterMarkdown(finalText);
       for (const chunk of chunks) {
         try {
           await client.sendText(null, chunk);
@@ -273,7 +329,6 @@ async function startBridge() {
       }
     });
   }
-
   client.startPoll();
   isBridgeRunning = true;
   appendLog("桥接启动", `微信长轮询已启动，监听来自微信的消息`);
@@ -302,8 +357,16 @@ function stopBridge() {
  */
 async function onIncomingWechatMessage(msg) {
   const settings = storage.loadSettings();
-  const text = (msg.content || "").trim();
+  const text = (msg.cleanVoiceText || msg.content || "").trim();
   if (!text) return;
+
+  // 微信语音消息专属提示
+  if (msg.isVoice && text) {
+    appendLog("收到语音消息", `${msg.fromUser || "用户"}: ${text}`);
+    if (client) {
+      client.sendText(msg.fromUser, `🎙️ 已识别语音: "${text}"\n正在派发给 AI 处理...`).catch(() => {});
+    }
+  }
   // 0. 安全门禁拦截确认响应
   if (pendingSafetyConfirmation && (text === "1" || text === "2")) {
     const conf = pendingSafetyConfirmation;

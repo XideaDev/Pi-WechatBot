@@ -33,31 +33,45 @@ function getIpcPort() {
 /**
  * 向插件主进程发送事件
  */
-function sendToMain(payload) {
-  const port = getIpcPort();
-  if (!port) return;
+function sendToMain(payload, timeoutMs = 3000) {
+  return new Promise((resolve) => {
+    const port = getIpcPort();
+    if (!port) return resolve({ ok: false, error: "IPC port not available" });
 
-  const data = JSON.stringify(payload);
-  const req = http.request(
-    {
-      hostname: "127.0.0.1",
-      port,
-      path: "/",
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Content-Length": Buffer.byteLength(data),
+    const data = JSON.stringify(payload);
+    const req = http.request(
+      {
+        hostname: "127.0.0.1",
+        port,
+        path: "/",
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Content-Length": Buffer.byteLength(data),
+        },
+        timeout: timeoutMs,
       },
-      timeout: 3000,
-    },
-    (res) => {
-      res.resume();
-    }
-  );
+      (res) => {
+        let resBody = "";
+        res.on("data", (chunk) => { resBody += chunk; });
+        res.on("end", () => {
+          try {
+            resolve(resBody ? JSON.parse(resBody) : { ok: true });
+          } catch {
+            resolve({ ok: true });
+          }
+        });
+      }
+    );
 
-  req.on("error", () => {});
-  req.write(data);
-  req.end();
+    req.on("error", (err) => resolve({ ok: false, error: err.message }));
+    req.on("timeout", () => {
+      req.destroy();
+      resolve({ ok: false, error: "IPC timeout" });
+    });
+    req.write(data);
+    req.end();
+  });
 }
 
 /**
@@ -104,14 +118,39 @@ export default function wechatAgentExtension(api) {
     }
   });
 
-  // 3. 拦截桌面特有交互工具（例如 asktool），避免移动端在后台等待桌面按键
+  // 3. 拦截高危命令与桌面特有交互（asktool），支持微信手机端远程授权
   api.on("tool_call", async (event, ctx) => {
+    const sessionId = ctx?.sessionId || "";
+
+    // 3.1 asktool 转发或拦截
     if (isCurrentTurnWechat && event.toolName === "asktool") {
       return {
         block: true,
         reason:
           "当前任务由微信用户远程发起，无法弹出桌面交互卡片。请直接在文本回复中列出编号选项，向微信用户提问并等待下一条微信输入。",
       };
+    }
+
+    // 3.2 高危 Shell 命令（rm -rf, git push, 格式化, 强制终止）远程审批门禁
+    if (isCurrentTurnWechat && event.toolName === "Bash" && event.args?.command) {
+      const cmd = String(event.args.command).trim();
+      const isDangerous = /\b(rm\s+-[rfRF]{1,3}|git\s+push|npm\s+publish|mkfs|dd\s+if=|DROP\s+TABLE|DELETE\s+FROM)\b/i.test(cmd);
+      if (isDangerous) {
+        const resp = await sendToMain({
+          type: "ask_approval",
+          sessionId,
+          toolName: "Bash",
+          command: cmd,
+          timestamp: Date.now(),
+        }, 65_000);
+
+        if (!resp || !resp.allow) {
+          return {
+            block: true,
+            reason: `微信用户在手机端拒绝了此高危操作授权（或超时未答复）: ${cmd}`,
+          };
+        }
+      }
     }
   });
 
